@@ -33,11 +33,17 @@ async def read_todo(id:int):
 @app.put("/todo/{id}")
 async def update_todo(id:int, note: str):
     async with aiosqlite.connect("todo.db") as conn:
-        await conn.execute('''UPDATE todos
-                            SET note = ?
-                            WHERE id = ?''', (note, id))
-        await conn.commit()
-    return f"todo {id} updated"
+        async with conn.execute("SELECT EXISTS(SELECT 1 FROM todos WHERE id = ? LIMIT 1)", (id,)) as cursor:
+            record = await cursor.fetchone()
+            if record[0] == 1:
+                await conn.execute('''UPDATE todos
+                                    SET note = ?
+                                    WHERE id = ?''', (note, id))
+                await conn.commit()
+                return f"todo {id} updated"
+            else:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"no todo with id: {id} found in todos")
 
 @app.delete("/todo/{id}", status_code=status.HTTP_202_ACCEPTED)
 async def delete_todo(id:int):
