@@ -30,7 +30,7 @@ async def read_todo(id:int):
             todo = await cursor.fetchall()
     return {"todo": todo}
 
-@app.put("/todo/{id}")
+@app.put("/todo/{id}", status_code=status.HTTP_202_ACCEPTED)
 async def update_todo(id:int, note: str):
     async with aiosqlite.connect("todo.db") as conn:
         async with conn.execute("SELECT EXISTS(SELECT 1 FROM todos WHERE id = ? LIMIT 1)", (id,)) as cursor:
