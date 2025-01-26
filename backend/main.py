@@ -10,6 +10,23 @@ app = FastAPI()
 async def home():
     return {'message':'hello world'}
 
+@app.get("/todo/{id}")
+async def read_todo(id:int):
+    async with aiosqlite.connect("todo.db") as conn:
+        async with conn.execute("SELECT * FROM todos WHERE id = ?", (id,)) as cursor:
+            row = await cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"no todo with id: {id} found in todos")
+            return {"todo":row}
+
+@app.get("/todo")
+async def get_all_todos():
+    async with aiosqlite.connect("todo.db") as conn:
+        async with conn.execute("SELECT * FROM todos") as cursor:
+            todos = await cursor.fetchall()
+    return {"todos": todos}
+
 @app.post("/todo", status_code=status.HTTP_201_CREATED)
 async def add_todo(data:ToDo):
     try:
@@ -22,18 +39,6 @@ async def add_todo(data:ToDo):
         return "todo created"
     except aiosqlite.IntegrityError as e:
         raise  HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
-@app.get("/todo/{id}")
-async def read_todo(id:int):
-    async with aiosqlite.connect("todo.db") as conn:
-        async with conn.execute("SELECT * FROM todos WHERE id = ?", (id,)) as cursor:
-            row = await cursor.fetchone()
-            if not row:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail=f"no todo with id: {id} found in todos")
-            return {"todo":row}
-
-
 
 @app.put("/todo/{id}", status_code=status.HTTP_202_ACCEPTED)
 async def update_todo(id:int, note: str):
@@ -56,11 +61,4 @@ async def delete_todo(id:int):
         await conn.execute("DELETE FROM todos WHERE id = ?", (id,))
         await conn.commit()
     return f"todo {id} deleted"
-
-@app.get("/todo")
-async def get_todos():
-    async with aiosqlite.connect("todo.db") as conn:
-        async with conn.execute("SELECT * FROM todos") as cursor:
-            todos = await cursor.fetchall()
-    return {"todos": todos}
 
