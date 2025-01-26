@@ -1,6 +1,5 @@
 from fastapi import FastAPI, status, HTTPException
 import aiosqlite
-from typing import Any
 from schemas import ToDo
 
 
@@ -12,6 +11,7 @@ async def home():
 
 @app.get("/todo/{id}")
 async def read_todo(id:int):
+    """Retrieve a single item by id"""
     async with aiosqlite.connect("todo.db") as conn:
         async with conn.execute("SELECT * FROM todos WHERE id = ?", (id,)) as cursor:
             row = await cursor.fetchone()
@@ -22,6 +22,7 @@ async def read_todo(id:int):
 
 @app.get("/todo")
 async def get_all_todos():
+    """Retrieve all items in database"""
     async with aiosqlite.connect("todo.db") as conn:
         async with conn.execute("SELECT * FROM todos") as cursor:
             todos = await cursor.fetchall()
@@ -29,6 +30,7 @@ async def get_all_todos():
 
 @app.post("/todo", status_code=status.HTTP_201_CREATED)
 async def add_todo(data:ToDo):
+    """Create a new entry"""
     try:
         async with aiosqlite.connect("todo.db") as conn:
             await conn.execute(
@@ -42,6 +44,7 @@ async def add_todo(data:ToDo):
 
 @app.put("/todo/{id}", status_code=status.HTTP_202_ACCEPTED)
 async def update_todo(id:int, note: str):
+    """Modify an existing database entry"""
     async with aiosqlite.connect("todo.db") as conn:
         async with conn.execute("SELECT EXISTS(SELECT 1 FROM todos WHERE id = ? LIMIT 1)", (id,)) as cursor:
             record = await cursor.fetchone()
@@ -57,8 +60,19 @@ async def update_todo(id:int, note: str):
 
 @app.delete("/todo/{id}", status_code=status.HTTP_202_ACCEPTED)
 async def delete_todo(id:int):
+    """Delete a database entry by id"""
     async with aiosqlite.connect("todo.db") as conn:
         await conn.execute("DELETE FROM todos WHERE id = ?", (id,))
         await conn.commit()
     return f"todo {id} deleted"
+
+@app.get("/id")
+async def get_next_id() -> int:
+    """Finds the next available integer value that can be used as an id"""
+    async with aiosqlite.connect("todo.db") as conn:
+        async with conn.execute("SELECT MAX(id) FROM todos") as cursor:
+            val = await cursor.fetchone()
+            return val[0]+1
+    
+            
 
