@@ -12,7 +12,11 @@ async def main() -> None:
     async with asyncio.TaskGroup() as tasks:
         tasks.create_task(
             create_table(
-                "CREATE TABLE IF NOT EXISTS todos (id INT, note TEXT)", "todo.db"
+                '''CREATE TABLE IF NOT EXISTS todos (
+                    id INT NOT NULL,
+                    note TEXT,
+                    PRIMARY KEY (ID)
+                    )''', "todo.db"
             )
         )
         
