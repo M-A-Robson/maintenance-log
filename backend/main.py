@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, HTTPException
 import aiosqlite
 from typing import Any
 from schemas import ToDo
@@ -12,13 +12,16 @@ async def home():
 
 @app.post("/todo", status_code=status.HTTP_201_CREATED)
 async def add_todo(data:ToDo):
-    async with aiosqlite.connect("todo.db") as conn:
-        await conn.execute(
-            "INSERT INTO todos (id,note) VALUES (?,?)",
-            (data.id, data.note),
-        )
-        await conn.commit()
-    return "todo created"
+    try:
+        async with aiosqlite.connect("todo.db") as conn:
+            await conn.execute(
+                "INSERT INTO todos (id,note) VALUES (?,?)",
+                (data.id, data.note),
+            )
+            await conn.commit()
+        return "todo created"
+    except aiosqlite.IntegrityError as e:
+        raise  HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @app.get("/todo/{id}")
 async def read_todo(id:int):
