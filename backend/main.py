@@ -27,8 +27,13 @@ async def add_todo(data:ToDo):
 async def read_todo(id:int):
     async with aiosqlite.connect("todo.db") as conn:
         async with conn.execute("SELECT * FROM todos WHERE id = ?", (id,)) as cursor:
-            todo = await cursor.fetchall()
-    return {"todo": todo}
+            row = await cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"no todo with id: {id} found in todos")
+            return {"todo":row}
+
+
 
 @app.put("/todo/{id}", status_code=status.HTTP_202_ACCEPTED)
 async def update_todo(id:int, note: str):
